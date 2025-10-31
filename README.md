@@ -5,13 +5,16 @@ A compilation of projects from my classes at UC Berkeley School of Information
 ## Research Design
 **The Story of Leaded Gasoline**
 - A graphical telling of the rapid adoption and subsequent banning of leaded gasoline using just pictures
+- [Presentation PDF](https://github.com/daveschaaf/daveschaaf.github.io/blob/main/research_design/Leaded%20Gasoline.pdf)
 
 **Staggered Keyboards: The next headphone jack**
 - An elevator pitch to Apple to rearrange the keyboard into regular rows and columns
+- [Presentation PDF](https://github.com/daveschaaf/daveschaaf.github.io/blob/main/research_design/Keyboard%20Research%20Proposal%20Elevator%20Pitch.pdf)
 
 ## Statistics for Data Science
-**Partisan Differences in Media Trust ([Repo](https://github.com/daveschaaf/lab_1))**
+**Partisan Differences in Media Trust**
 - Analysis of American Nation Election Survey (ANES) data to understand how Democrats and Republicans put trust in social media and traditional media sources.
+- [Project Repository](https://github.com/daveschaaf/lab_1)
 
 ## Data Engineering
 **Data Management for E-commerce (Repo)**
