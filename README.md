@@ -15,7 +15,7 @@ I am a graduate student at the UC Berkeley School of Information, pursuing a Mas
 
 ## Data Engineering
 **Data Management for E-commerce** ([Project Repository]())
-- Analysis of a data management archicture based on my work as Fractional-COO with an e-commerce brand
+- Analysis of a data management architecture based on my work as Fractional-COO with an e-commerce brand
 - Tools & Skills: Neo4j, MongoDB, Redis, graph algorithms
 
 ---
