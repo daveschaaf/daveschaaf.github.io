@@ -1,0 +1,183 @@
+---
+title: "Partisan Differences in Media Trust"
+author: "Dave Schaaf, Nonso Orji, Peter Le"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+library(tidyverse)
+```
+```{r load-data, include=FALSE}
+# Load and clean data directly
+anes <- read_csv("../data/raw/anes_timeseries_2024_csv_20250808.csv")
+
+anes_clean <- anes %>%
+  select(
+    party_raw = V241227x,
+    trad_media_raw = V242422,
+    social_media_raw = V242423
+  ) %>%
+  mutate(
+    party = case_when(
+      party_raw %in% c(1, 2, 3) ~ "Democrat",
+      party_raw %in% c(5, 6, 7) ~ "Republican",
+      TRUE ~ NA_character_
+    ),
+    trad_media_trust = if_else(trad_media_raw >= 1 & trad_media_raw <= 4,
+                               trad_media_raw, NA_real_),
+    social_media_trust = if_else(social_media_raw >= 1 & social_media_raw <= 4,
+                                 social_media_raw, NA_real_)
+  ) %>%
+  filter(!is.na(party))
+```
+
+# Introduction
+
+In the 2024 election, concerns about news trustworthiness became a frequent point of debate among voters and politicians. Disagreement on basic facts raises questions about how Democrats and Republicans consume information, and the extent to which these differences effect willingness to accept new information as factually accurate. A media trust gap between Democrats and Republicans suggests that political debate itself is undermined when citizens do not share common understanding of basic facts.
+
+The perceived trustworthiness of political information platforms influences how citizens interpret political messages, how they engage with political candidates and organizations, and how they perceive the world in which they live. This study examines the extent of that gap between parties and asks whether the delivery platform of information pre-determines whether citizens will believe information to be factually accurate.
+
+In particular, we examine the trust in two different media platforms as sources of political information - traditional media and social media. We ask: Are there partisan differences in the perceived trustworthiness of social media and traditional media platforms?
+
+This study analyzes data from the 2024 American National Election Studies (ANES) survey. 
+The ANES survey has been conducted every presidential election year since 1948 with a nationally representative sample. Researchers conduct interviews both pre- and post-election with respondents that cover topics of election, voting behavior, and public opinion including trust in media platforms over time. In 2024, the total sample size of the survey was `r nrow(anes_clean)` respondents who identified or leaned toward either the Democratic or Republican Party.
+
+Our analysis shows a partisan media trust gap in traditional media sources (p \< 0.001) with Republicans expressing lower trust. Perceptions of social media show a statistically significant difference (p \< 0.001), but with negligible effect size.
+
+# Data and Methodology
+
+**Party Identification:** Following Petrocik (2009), ANES, and the lab direction, we classify respondents who do not self-identify with either party but lean towards one of them as members of that party. We acknowledge that party identification does not determine how they will actually vote. 
+
+Party identification is based on the ANES 7-point party ID scale (V241227x). We classify respondents as Democrats if they identify as Strong Democrat, Democrat, or Independent-leaning Democrat (values 1-3). Similarly, Republicans include Strong Republican, Republican, and Independent-leaning Republican (values 5-7). Pure Independents (value 4) are excluded from analysis. This yields `r sum(anes_clean$party == "Democrat")` Democrats and `r sum(anes_clean$party == "Republican")` Republicans.
+
+**Media Trust:** We define "media trust" as the public's willingness to accept  information based on the delivery mechanism of that information. In the ANES 2024 survey, respondents are asked about their trust in traditional media or social media and given examples of those media platforms - newspaper, TV, radio for traditional media and Facebook, Twitter/X, and Instagram for social media. Other questions in the survey address specific programs and shows, but that nuance is not part of this analysis. The term "traditional media" does have political connotations that may elicit a political statement rather than a thoughtful assessment from some respondents.
+
+We measure media trust using ANES items V242422 (traditional media) and V242423 (social media). Both variables use a 4-point ordinal scale: 1 = Trust a lot, 2 = Trust somewhat, 3 = Do not trust very much, 4 = Do not trust at all. Higher values indicate less trust.
+
+# Results
+
+## Descriptive Statistics
+
+Figure 1 presents the distribution of media trust levels by party affiliation. The plots reveal a striking pattern: Republicans show substantially lower trust in traditional media compared to Democrats, with `r round(mean(anes_clean$trad_media_trust[anes_clean$party == "Republican"], na.rm=T), 2)` mean trust versus `r round(mean(anes_clean$trad_media_trust[anes_clean$party == "Democrat"], na.rm=T), 2)` for Democrats. In contrast, both parties express similar distrust of social media platforms.
+
+```{r plot, fig.cap="Distribution of media trust by party.", fig.height=4, fig.width=8}
+# Recreate the comparison plot
+plot_data <- anes_clean %>%
+  select(party, trad_media_trust, social_media_trust) %>%
+  pivot_longer(
+    cols = c(trad_media_trust, social_media_trust),
+    names_to = "media_type",
+    values_to = "trust_level"
+  ) %>%
+  filter(!is.na(trust_level)) %>%
+  mutate(
+    media_type = if_else(media_type == "trad_media_trust", 
+                         "Traditional Media", "Social Media"),
+    trust_label = factor(trust_level, levels = 1:4,
+                        labels = c("Trust a lot", "Trust somewhat",
+                                  "Don't trust much", "Don't trust at all"))
+  )
+
+plot_data %>%
+  count(media_type, party, trust_label) %>%
+  group_by(media_type, party) %>%
+  mutate(pct = n / sum(n) * 100) %>%
+  ggplot(aes(x = party, y = pct, fill = trust_label)) +
+  geom_col(position = "stack", width = 0.7) +
+  facet_wrap(~ media_type) +
+  scale_fill_manual(
+    values = c("#2c7bb6", "#abd9e9", "#fdae61", "#d7191c"),
+    name = "Trust Level"
+  ) +
+  labs(x = "", y = "Percentage (%)") +
+  theme_minimal(base_size = 10) +
+  theme(
+    legend.position = "bottom",
+    strip.text = element_text(face = "bold", size = 10),
+    panel.grid.minor = element_blank()
+  ) +
+  guides(fill = guide_legend(nrow = 1))
+```
+
+## Test Selection and Assumptions
+
+We use the Wilcoxon Rank-Sum test for both comparisons. Because the traditional media and social media questions use an ordinal scale, the Wilcoxon Rank-Sum is the most appropriate test. The test assumptions are as follows:
+
+**1. Independence:** Each respondent’s answer is independent of one another. ANES data is gathered from respondents who are recruited from a national population with only one person per household included.
+
+**2. Ordinal or continuous measurement:** Trust in both traditional and social media are  measured on 4-point ordinal scale. This creates a ranked set of trust levels for analysis.
+
+**3. Similar distribution shapes:** - According to Figure 1, both groups show a similar shape and spread with low trust in social media. Any violation would mean the test detects differences in distribution beyond just location shift. With large samples (n>2000 per group), the test is robust to this assumption.
+
+**4. Adequate sample size:** Responses to both the traditional media and social media questions exceed the minimum 20 per group required. For traditional media there were n=`r sum(!is.na(anes_clean$trad_media_trust) & anes_clean$party=="Democrat")` Democrats, and n=`r sum(!is.na(anes_clean$trad_media_trust) & anes_clean$party=="Republican")` Republicans. For traditional media there were n=`r sum(!is.na(anes_clean$social_media_trust) & anes_clean$party=="Democrat")` Democrats, and n=`r sum(!is.na(anes_clean$social_media_trust) & anes_clean$party=="Republican")` Republicans.
+
+All assumptions for the Wilcoxon Rank-Sum test are reasonably satisfied.
+
+## Hypothesis Tests
+
+### Traditional Media Trust
+
+**Null Hypothesis:** The probability that a randomly selected Democrat ranks higher in trust of traditional media than a randomly selected Republican equals the probability that a randomly selected Republican ranks higher than a Democrat.
+```{r test1, echo=TRUE, include=FALSE}
+# Wilcoxon Rank-Sum Test: Traditional Media
+trad_dem <- anes_clean %>% 
+  filter(party == "Democrat", !is.na(trad_media_trust)) %>% 
+  pull(trad_media_trust)
+
+trad_rep <- anes_clean %>% 
+  filter(party == "Republican", !is.na(trad_media_trust)) %>% 
+  pull(trad_media_trust)
+
+test1 <- wilcox.test(trad_dem, trad_rep, exact = FALSE)
+test1
+
+# Effect size
+r_rb1 <- (2 * test1$statistic) / (length(trad_dem) * length(trad_rep)) - 1
+```
+
+**Results:** W = `r format(test1$statistic, scientific=FALSE)`, p < 0.001, rank-biserial r = `r round(r_rb1, 3)`.
+
+**Statistical Significance:** We reject the null hypothesis (p < 0.001). There is strong evidence of a difference in traditional media trust between Democrats and Republicans.
+
+**Practical Significance:** The effect size (r = `r round(r_rb1, 2)`) represents a **medium-to-large effect**. Democrats (mean = `r round(mean(trad_dem), 2)`) trust traditional media substantially more than Republicans (mean = `r round(mean(trad_rep), 2)`). This 0.7-point difference on a 4-point scale is substantively meaningful. For political campaigns, this suggests traditional media channels will be received very differently by partisan audiences—Republicans approach these sources with much greater skepticism.
+
+### Social Media Trust
+
+**Null Hypothesis:** The probability that a randomly selected Democrat ranks higher in trust of social media than a randomly selected Republican equals the probability that a randomly selected Republican ranks higher than a Democrat.
+```{r test2, echo=TRUE, include=FALSE}
+# Wilcoxon Rank-Sum Test: Social Media
+social_dem <- anes_clean %>% 
+  filter(party == "Democrat", !is.na(social_media_trust)) %>% 
+  pull(social_media_trust)
+
+social_rep <- anes_clean %>% 
+  filter(party == "Republican", !is.na(social_media_trust)) %>% 
+  pull(social_media_trust)
+
+test2 <- wilcox.test(social_dem, social_rep, exact = FALSE)
+test2
+
+# Effect size
+r_rb2 <- (2 * test2$statistic) / (length(social_dem) * length(social_rep)) - 1
+```
+
+**Results:** W = `r format(test2$statistic, scientific=FALSE)`, p < 0.001, rank-biserial r = `r round(r_rb2, 3)`.
+
+**Statistical Significance:** We reject the null hypothesis (p < 0.001). There is strong statistical evidence of a difference in social media trust between Democrats and Republicans.
+
+**Practical Significance:** Despite statistical significance, the effect size (r = `r round(r_rb2, 3)`) is **negligible**. Both Democrats (mean = `r round(mean(social_dem), 2)`) and Republicans (mean = `r round(mean(social_rep), 2)`) strongly distrust social media, with only a 0.1-point difference on a 4-point scale. This difference is **not practically meaningful** — both groups are similarly skeptical of social media as a source of information.
+
+# Discussion
+
+Our analysis reveals a striking asymmetry in partisan media trust. Republicans trust traditional media sources far less than Democrats (large effect), yet both parties exhibit similar distrust in social media platforms (negligible effect). This pattern suggests the media trust gap is specific to legacy media platforms rather than digital platforms broadly.
+
+For political campaigns, these findings have clear implications: traditional media outreach faces a credibility barrier with Republican voters that does not exist for Democrats, whereas social media messaging confronts similar skepticism across party lines. The polarization of media trust is real but asymmetric—concentrated in attitudes toward traditional news sources rather than reflecting a general partisan divide in information consumption.
+
+For Republican voters in particular, this analysis raises the question: what sources are viewed as trustworthy if both social media and traditional media are viewed with such skepticism? Further analysis at a more granular level to examine  particular shows, channels, or influencers may help understand which media sources are considered credible.
+
+
+
+---
+
+**Repository:** https://github.com/NonsoOrji/lab_1
